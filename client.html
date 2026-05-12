@@ -284,9 +284,9 @@
 
         // 连接WebSocket
         function connectWebSocket() {
-            //const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            //const wsUrl = `${protocol}//${window.location.host}`;
-            const wsUrl = 'ws://localhost:3000';
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            //const wsUrl = 'ws://localhost:3000';
             
             ws = new WebSocket(wsUrl);
 

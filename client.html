@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线上猜拳游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .game-area {
+            display: flex;
+            align-items: center;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .player-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            border: 3px solid #dee2e6;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .player-card.active {
+            border-color: #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .player-card.winner {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .player-card.loser {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .player-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            max-width: 80;
+        }
+
+        .player-score {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .player-choice {
+            font-size: 3em;
+            margin: 20px 0;
+        }
+
+        .choices {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .choice-btn {
+            padding: 20px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 10px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            min-width: 120px;
+        }
+
+        .choice-btn img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid white;
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .choice-btn:hover:not(:disabled) img {
+            transform: scale(1.1);
+            transition: transform 0.3s;
+        }
+
+        .choice-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .choice-btn.selected {
+            background: #28a745;
+            box-shadow: 0 0 20px rgba(40, 167, 69, 0.5);
+        }
+
+        .result-area {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .play-again-btn {
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 10px;
+            background: #28a745;
+            color: white;
+            cursor: pointer;
+            margin-top: 20px;
+            display: none;
+            transition: all 0.3s;
+        }
+
+        .play-again-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .play-again-btn.show {
+            display: inline-block;
+        }
+
+        .vs-text {
+            text-align: center;
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            grid-column: 1 / -1;
+        }
+
+        .round-info {
+            text-align: center;
+            font-size: 1.1em;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .game-area {
+                grid-template-columns: 1fr;
+            }
+            
+            .vs-text {
+                grid-column: 1;
+            }
+            
+            .choices {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✊ 猜拳游戏 ✌️</h1>
+            <p>石头、剪刀、布</p>
+        </div>
+
+        <div class="status" id="status">
+            正在连接服务器...
+        </div>
+
+        <div class="game-area" id="gameArea" style="display: none;">
+            <div class="player-card" id="playerCard">
+                <div class="player-name">👤 你</div>
+                <div class="player-score" id="playerScore">0</div>
+                <div class="player-choice" id="playerChoice">?</div>
+            </div>
+
+            <div class="vs-text">VS</div>
+
+            <div class="player-card" id="opponentCard">
+                <div class="player-name">👤 对手</div>
+                <div class="player-score" id="opponentScore">0</div>
+                <div class="player-choice" id="opponentChoice">?</div>
+            </div>
+        </div>
+
+        <div class="round-info" id="roundInfo" style="display: none;"></div>
+
+        <div class="choices" id="choices" style="display: none;">
+            <button class="choice-btn" onclick="makeChoice('rock')">
+                <img src="resources/rock.jpg" alt="石头">
+                石头
+            </button>
+            <button class="choice-btn" onclick="makeChoice('scissors')">
+                <img src="resources/scissors.jpg" alt="剪刀">
+                剪刀
+            </button>
+            <button class="choice-btn" onclick="makeChoice('paper')">
+                <img src="resources/paper.jpg" alt="布">
+                布
+            </button>
+        </div>
+
+        <div class="result-area">
+            <div id="roundResult" style="font-size: 1.3em; font-weight: bold; margin: 10px 0;"></div>
+            <button class="play-again-btn" id="playAgainBtn" onclick="playAgain()">再来一局</button>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let playerId;
+        let opponentId;
+        let gameActive = false;
+        let playerChoice = null;
+        const choiceEmojis = {
+            'rock': '✊',
+            'scissors': '✌️',
+            'paper': '🖐️'
+        };
+        const choiceNames = {
+            'rock': '石头',
+            'scissors': '剪刀',
+            'paper': '布'
+        };
+
+        // 连接WebSocket
+        function connectWebSocket() {
+            //const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            //const wsUrl = `${protocol}//${window.location.host}`;
+            const wsUrl = 'ws://localhost:3000';
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                updateStatus('已连接到服务器');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onclose = () => {
+                updateStatus('连接已断开，正在重连...');
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket错误:', error);
+                updateStatus('连接错误');
+            };
+        }
+
+        // 处理服务器消息
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'connected':
+                    playerId = data.playerId;
+                    updateStatus('已连接，等待对手加入...');
+                    break;
+
+                case 'waiting':
+                    updateStatus('等待对手加入...');
+                    break;
+
+                case 'game_start':
+                    opponentId = data.opponent.id;
+                    gameActive = true;
+                    updateStatus('游戏开始！请出拳');
+                    showGameElements();
+                    updatePlayerScores(0, 0);
+                    updatePlayerChoices(null, null);
+                    updateRoundInfo(data.round, data.maxRounds);
+                    resetChoiceButtons();
+                    enableChoices(true);
+                    document.getElementById('roundResult').textContent = '';
+                    document.getElementById('playAgainBtn').classList.remove('show');
+                    clearPlayerCardStyles();
+                    break;
+
+                case 'round_result':
+                    updatePlayerScores(data.player1.id === playerId ? data.player1.score : data.player2.score,
+                                     data.player1.id === opponentId ? data.player1.score : data.player2.score);
+                    
+                    const myChoice = data.player1.id === playerId ? data.player1.choice : data.player2.choice;
+                    const oppChoice = data.player1.id === opponentId ? data.player1.choice : data.player2.choice;
+                    
+                    updatePlayerChoices(myChoice, oppChoice);
+                    updateRoundInfo(data.round, data.maxRounds);
+                    
+                    // 显示回合结果
+                    if (data.winner === playerId) {
+                        document.getElementById('roundResult').textContent = '这局你赢了！🎉';
+                        highlightPlayerCard('player');
+                    } else if (data.winner === opponentId) {
+                        document.getElementById('roundResult').textContent = '这局你输了！😢';
+                        highlightPlayerCard('opponent');
+                    } else {
+                        document.getElementById('roundResult').textContent = '平局！';
+                        clearPlayerCardStyles();
+                    }
+                    
+                    // 重置选择
+                    resetChoiceButtons();
+                    playerChoice = null;
+                    enableChoices(true);
+                    break;
+
+                case 'game_over':
+                    gameActive = false;
+                    enableChoices(false);
+                    
+                    if (data.winner === playerId) {
+                        updateStatus('恭喜你赢得了比赛！🏆');
+                        document.getElementById('roundResult').textContent = '你是最终赢家！🏆';
+                    } else if (data.winner === opponentId) {
+                        updateStatus('很遗憾，你输了比赛');
+                        document.getElementById('roundResult').textContent = '对手赢得了比赛！';
+                    } else {
+                        updateStatus('比赛结束，平局！');
+                        document.getElementById('roundResult').textContent = '最终平局！🤝';
+                    }
+                    
+                    document.getElementById('playAgainBtn').classList.add('show');
+                    break;
+
+                case 'opponent_disconnected':
+                    updateStatus('对手已断开连接');
+                    gameActive = false;
+                    enableChoices(false);
+                    document.getElementById('playAgainBtn').classList.add('show');
+                    break;
+            }
+        }
+
+        // 做出选择
+        function makeChoice(choice) {
+            if (!gameActive || playerChoice) return;
+            
+            playerChoice = choice;
+            
+            // 高亮选中的按钮
+            const buttons = document.querySelectorAll('.choice-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.textContent.includes(choiceNames[choice])) {
+                    btn.classList.add('selected');
+                }
+            });
+            
+            // 禁用所有按钮
+            enableChoices(false);
+            
+            // 发送选择到服务器
+            ws.send(JSON.stringify({
+                type: 'make_choice',
+                choice: choice
+            }));
+        }
+
+        // 重新开始游戏
+        function playAgain() {
+            ws.send(JSON.stringify({
+                type: 'play_again'
+            }));
+            
+            document.getElementById('playAgainBtn').classList.remove('show');
+            document.getElementById('roundResult').textContent = '';
+            clearPlayerCardStyles();
+            updateStatus('等待对手加入...');
+            hideGameElements();
+        }
+
+        // UI更新函数
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function updatePlayerScores(playerScore, opponentScore) {
+            document.getElementById('playerScore').textContent = playerScore;
+            document.getElementById('opponentScore').textContent = opponentScore;
+        }
+
+        /*function updatePlayerChoices(playerChoice, opponentChoice) {
+            document.getElementById('playerChoice').textContent = playerChoice ? choiceEmojis[playerChoice] : '?';
+            document.getElementById('opponentChoice').textContent = opponentChoice ? choiceEmojis[opponentChoice] : '?';
+        }*/
+
+        function updatePlayerChoices(playerChoice, opponentChoice) {
+            const playerChoiceElement = document.getElementById('playerChoice');
+            const opponentChoiceElement = document.getElementById('opponentChoice');
+            
+            if (playerChoice) {
+                playerChoiceElement.innerHTML = `<img src="resources/${playerChoice}.jpg" alt="${choiceNames[playerChoice]}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 10px;">`;
+            } else {
+                playerChoiceElement.textContent = '?';
+            }
+            
+            if (opponentChoice) {
+                opponentChoiceElement.innerHTML = `<img src="resources/${opponentChoice}.jpg" alt="${choiceNames[opponentChoice]}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 10px;">`;
+            } else {
+                opponentChoiceElement.textContent = '?';
+            }
+        }
+
+        function updateRoundInfo(currentRound, maxRounds) {
+            document.getElementById('roundInfo').textContent = `第 ${currentRound}/${maxRounds} 局`;
+        }
+
+        function showGameElements() {
+            document.getElementById('gameArea').style.display = 'flex';
+            document.getElementById('choices').style.display = 'flex';
+            document.getElementById('roundInfo').style.display = 'block';
+        }
+
+        function hideGameElements() {
+            document.getElementById('gameArea').style.display = 'none';
+            document.getElementById('choices').style.display = 'none';
+            document.getElementById('roundInfo').style.display = 'none';
+        }
+
+        function enableChoices(enabled) {
+            const buttons = document.querySelectorAll('.choice-btn');
+            buttons.forEach(btn => {
+                btn.disabled = !enabled;
+            });
+        }
+
+        function resetChoiceButtons() {
+            const buttons = document.querySelectorAll('.choice-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('selected');
+            });
+        }
+
+        function highlightPlayerCard(winner) {
+            const playerCard = document.getElementById('playerCard');
+            const opponentCard = document.getElementById('opponentCard');
+            
+            if (winner === 'player') {
+                playerCard.classList.add('winner');
+                playerCard.classList.remove('loser');
+                opponentCard.classList.add('loser');
+                opponentCard.classList.remove('winner');
+            } else {
+                opponentCard.classList.add('winner');
+                opponentCard.classList.remove('loser');
+                playerCard.classList.add('loser');
+                playerCard.classList.remove('winner');
+            }
+        }
+
+        function clearPlayerCardStyles() {
+            document.getElementById('playerCard').classList.remove('winner', 'loser', 'active');
+            document.getElementById('opponentCard').classList.remove('winner', 'loser', 'active');
+        }
+
+        // 初始化连接
+        connectWebSocket();
+    </script>
+</body>
+</html>
